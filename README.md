@@ -1,5 +1,5 @@
 
-# ASP.NET CORE API JWT Authentication with Refresh Token
+# ASP.NET Core API JWT Authentication and Refresh Token
 
 This is a sample ASP.NET CORE API that uses JWT Bearer Authentication and Refresh Token feature.
 
