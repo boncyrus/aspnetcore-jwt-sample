@@ -56,8 +56,8 @@ namespace AspNetCoreJwt
                 {
                     ValidateIssuerSigningKey = true,
                     IssuerSigningKey = new SymmetricSecurityKey(key),
-                    ValidateAudience = false,
-                    ValidateIssuer = false
+                    ValidIssuer = appSettings.JwtSettings.Issuer,
+                    ValidAudience = appSettings.JwtSettings.Audience
                 };
             });
 
