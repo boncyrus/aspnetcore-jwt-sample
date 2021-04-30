@@ -1,9 +1,13 @@
 ﻿using AspNetCoreJwt.Models;
 using AspNetCoreJwt.Services;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System;
+using System.Collections.Generic;
+using System.Security.Claims;
 using System.Threading.Tasks;
 
 namespace AspNetCoreJwt.Controllers
@@ -22,11 +26,21 @@ namespace AspNetCoreJwt.Controllers
         [HttpPost("signin")]
         [ProducesResponseType(typeof(SignInResponse), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<IActionResult> SignIn([FromBody]SignInRequest request)
+        public async Task<IActionResult> SignIn([FromBody] SignInRequest request)
         {
             try
             {
+                var claims = new List<Claim>();
+                var claimsIdentity = new ClaimsIdentity(
+                    claims, CookieAuthenticationDefaults.AuthenticationScheme);
+
                 var result = await _userService.SignIn(request);
+                if (!string.IsNullOrEmpty(result?.Token))
+                {
+                    // Append the token as a cookie.
+                    HttpContext.Response.Cookies.Append("token", result.Token, new CookieOptions { HttpOnly = true });
+                }
+
                 return Ok(result);
             }
             catch (Exception ex)
@@ -38,7 +52,7 @@ namespace AspNetCoreJwt.Controllers
         [HttpPost("signup")]
         [ProducesResponseType(typeof(SignUpResponse), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<IActionResult> SignUp([FromBody]SignUpRequest request)
+        public async Task<IActionResult> SignUp([FromBody] SignUpRequest request)
         {
             try
             {
@@ -54,7 +68,7 @@ namespace AspNetCoreJwt.Controllers
         [HttpPost("refresh-token")]
         [ProducesResponseType(typeof(RefreshTokenResponse), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<IActionResult> RefreshToken([FromBody]RefreshTokenRequest request)
+        public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenRequest request)
         {
             try
             {

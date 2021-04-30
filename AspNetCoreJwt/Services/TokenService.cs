@@ -13,10 +13,12 @@ namespace AspNetCoreJwt.Services
     public class TokenService : ITokenService
     {
         private readonly IOptions<AppSettings> _appSettings;
+        private readonly TokenValidationParameters _tokenValidationParameters;
 
-        public TokenService(IOptions<AppSettings> appSettings)
+        public TokenService(IOptions<AppSettings> appSettings, TokenValidationParameters tokenValidationParameters)
         {
             _appSettings = appSettings;
+            _tokenValidationParameters = tokenValidationParameters;
         }
 
         public GenerateTokenResult GenerateToken(string appSecret, IEnumerable<Claim> claims, double expirationInMinutes)
@@ -45,8 +47,33 @@ namespace AspNetCoreJwt.Services
             return new GenerateTokenResult()
             {
                 Expiration = tokenDescriptor.Expires.Value,
-                Token = tokenHandler.WriteToken(token)
+                Token = tokenHandler.WriteToken(token),
             };
+        }
+
+        public ClaimsPrincipal GetPrincipal(string token)
+        {
+            var tokenHandler = new JwtSecurityTokenHandler();
+            try
+            {
+                var principal = tokenHandler.ValidateToken(token, _tokenValidationParameters, out var validatedToken);
+                var isValidAlgo =
+                    validatedToken is JwtSecurityToken jwtSecurityToken
+                    && jwtSecurityToken.Header.Alg.Equals(SecurityAlgorithms.HmacSha256, StringComparison.InvariantCultureIgnoreCase);
+
+                if (isValidAlgo)
+                {
+                    return principal;
+                }
+                else
+                {
+                    return null;
+                }
+            }
+            catch
+            {
+                return null;
+            }
         }
 
         public string GenerateRefreshToken()

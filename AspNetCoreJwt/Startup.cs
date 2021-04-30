@@ -10,6 +10,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace AspNetCoreJwt
 {
@@ -44,6 +45,17 @@ namespace AspNetCoreJwt
                 c.SwaggerDoc("v1", new OpenApiInfo { Title = "JWT Sample", Version = "v1" });
             });
 
+            var tokenValidationParameters = new TokenValidationParameters
+            {
+                ValidateIssuerSigningKey = true,
+                IssuerSigningKey = new SymmetricSecurityKey(key),
+                ValidIssuer = appSettings.JwtSettings.Issuer,
+                ValidAudience = appSettings.JwtSettings.Audience
+            };
+
+            Configuration.Bind(tokenValidationParameters);
+            services.AddSingleton(tokenValidationParameters);
+
             services.AddAuthentication(o =>
             {
                 o.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -57,7 +69,17 @@ namespace AspNetCoreJwt
                     ValidateIssuerSigningKey = true,
                     IssuerSigningKey = new SymmetricSecurityKey(key),
                     ValidIssuer = appSettings.JwtSettings.Issuer,
-                    ValidAudience = appSettings.JwtSettings.Audience
+                    ValidAudience = appSettings.JwtSettings.Audience,
+                };
+
+                options.Events = new JwtBearerEvents
+                {
+                    OnMessageReceived = context =>
+                    {
+                        // Get the token from cookies instead of the header.
+                        context.Token = context.Request.Cookies["token"];
+                        return Task.CompletedTask;
+                    }
                 };
             });
 

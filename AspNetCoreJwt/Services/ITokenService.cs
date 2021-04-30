@@ -9,5 +9,7 @@ namespace AspNetCoreJwt.Services
         GenerateTokenResult GenerateToken(string appSecret, IEnumerable<Claim> claims, double expirationInMinutes);
 
         string GenerateRefreshToken();
+
+        ClaimsPrincipal GetPrincipal(string token);
     }
 }

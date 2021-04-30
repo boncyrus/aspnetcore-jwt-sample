@@ -30,7 +30,7 @@ namespace AspNetCoreJwt.Services
             return new List<Claim>()
             {
                 new Claim(ClaimTypes.Email, user.Email),
-                new Claim(ClaimTypes.Name, user.Email)
+                new Claim(ClaimTypes.Name, user.Email),
             };
         }
 
@@ -44,6 +44,8 @@ namespace AspNetCoreJwt.Services
                 throw new Exception("Invalid username or passworrd");
             }
 
+            var token = _tokenService.GenerateToken(_appSettings.Value.JwtSettings.Secret, CreateClaims(userToSignIn), _appSettings.Value.JwtSettings.Expiration);
+
             var refreshToken = _tokenService.GenerateRefreshToken();
             userToSignIn.RefreshTokens.Add(new TokenEntity()
             {
@@ -51,7 +53,7 @@ namespace AspNetCoreJwt.Services
             });
 
             await _dbContext.SaveChangesAsync();
-            var token = _tokenService.GenerateToken(_appSettings.Value.JwtSettings.Secret, CreateClaims(userToSignIn), _appSettings.Value.JwtSettings.Expiration);
+
             var response = new SignInResponse()
             {
                 Username = request.Username,
@@ -90,6 +92,7 @@ namespace AspNetCoreJwt.Services
             };
 
             var token = _tokenService.GenerateToken(_appSettings.Value.JwtSettings.Secret, CreateClaims(userToRegister), _appSettings.Value.JwtSettings.Expiration);
+
             SignUpResponse response = new SignUpResponse()
             {
                 Username = request.Username,
@@ -115,11 +118,13 @@ namespace AspNetCoreJwt.Services
 
         public async Task<RefreshTokenResponse> RefreshToken(RefreshTokenRequest request)
         {
+            var currentUserPrincipal = _tokenService.GetPrincipal(request.Token);
+            var emailClaim = currentUserPrincipal.Claims.FirstOrDefault(x => x.Type == ClaimTypes.Email);
             var tokenEntity = _dbContext.RefreshTokens
                 .Include(x => x.User)
                 .FirstOrDefault(x => x.Token == request.RefreshToken);
 
-            if (tokenEntity == null)
+            if (tokenEntity == null || emailClaim == null || emailClaim.Value != tokenEntity.User.Email)
             {
                 throw new Exception("Refresh token is invalid.");
             }
